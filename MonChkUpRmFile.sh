@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ver=v1.0.0
+ver=v1.1.1
 CURRENT_TIME=$(TZ=Asia/Shanghai date "+%Y-%m-%d %H:%M:%S")
 
 echo "################## A MonChkUpRmFile Script By Karry Klein ##################"
@@ -19,6 +19,12 @@ UNIFIED_LOCAL_DELETED_FILES_LIST=$(mktemp)
 trap "rm -f '$CURRENT_STATE' '$LOCAL_NEW_FILES' '$LOCAL_DELETED_FILES' '$REMOTE_FILES_LIST' '$UNIFIED_REMOTE_FILES_LIST' '$UNIFIED_LOCAL_NEW_FILES_LIST' '$UNIFIED_LOCAL_DELETED_FILES_LIST'" EXIT
 
 # 配置参数
+export S3_UPLOADS_PROVIDER=cloudflard # S3服务提供商
+export S3_UPLOADS_BUCKET=yourbucketname # 你的存储桶名称
+export S3_UPLOADS_REGION=auto # 你的存储桶地域
+export S3_UPLOADS_ENDPOINT=https://yourbucketendpoint.com # 你的存储桶Endpoint
+export S3_UPLOADS_KEY=youraccesskeyid # 你的Access Key ID
+export S3_UPLOADS_SECRET=yoursecretaccesskey # 你的Secret Access Key
 MONITOR_DIR="/path/to/be/monitor"  # 要监控的文件夹路径（绝对路径）
 STATE_FILE="/tmp/MonChkUpRmFile_monitor_files_state.txt"  # 用于记录监控文件夹中文件状态的文件
 LOG_DIR="/var/log/MonChkUpRmFile"  # 日志文件目录
@@ -86,7 +92,7 @@ while IFS= read -r line; do
     echo "${line#*$S3_REMOTE_PATH}"  | awk '{print $1}' >> "$UNIFIED_LOCAL_DELETED_FILES_LIST"
   fi
 done < "$LOCAL_DELETED_FILES"
-retry_operation "s3 operate list-files" "" "$S3_REMOTE_PATH" "$MAX_RETRY" >> "$REMOTE_FILES_LIST"
+retry_operation "/usr/local/bin/s3 operate list-files" "" "$S3_REMOTE_PATH" "$MAX_RETRY" >> "$REMOTE_FILES_LIST"
 while IFS= read -r line; do
   if [[ "$line" == *"$S3_REMOTE_PATH"* ]]; then
     echo "${line#*$S3_REMOTE_PATH}" >> "$UNIFIED_REMOTE_FILES_LIST"
@@ -110,7 +116,7 @@ if [ -n "$TO_NEW_UPLOAD_FILES" ]; then
     RELATIVE_PATH="${FILE#$MONITOR_DIR/}"
     UPLOAD_TARGET="$S3_REMOTE_PATH/$RELATIVE_PATH"
     echo "[$CURRENT_TIME] 正在上传文件: $FILE -> $UPLOAD_TARGET" >> "$LOG_FILE"
-    retry_operation "s3 operate upload-file" "$FILE" "$UPLOAD_TARGET" "$MAX_RETRY"
+    retry_operation "/usr/local/bin/s3 operate upload-file" "$FILE" "$UPLOAD_TARGET" "$MAX_RETRY"
   done
 else
   echo "[$CURRENT_TIME] 无本地新增文件或云端已存在本地新增文件，无需上传文件。" >> "$LOG_FILE"
@@ -122,7 +128,7 @@ if [ -n "$TO_NEW_DELETE_FILES" ]; then
     RELATIVE_PATH="${FILE#$MONITOR_DIR/}"
     DELETE_TARGET="$S3_REMOTE_PATH/$RELATIVE_PATH"
     echo "[$CURRENT_TIME] 正在删除远程文件: $DELETE_TARGET" >> "$LOG_FILE"
-    retry_operation "s3 operate delete-file" "" "$DELETE_TARGET" "$MAX_RETRY"
+    retry_operation "/usr/local/bin/s3 operate delete-file" "" "$DELETE_TARGET" "$MAX_RETRY"
   done
 else
   echo "[$CURRENT_TIME] 无本地新增已删除文件，无需删除远程文件。" >> "$LOG_FILE"
