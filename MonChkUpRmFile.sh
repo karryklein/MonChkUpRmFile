@@ -1,12 +1,12 @@
 #!/bin/bash
 
-ver=v1.1.1
+ver=v1.1.2
 CURRENT_TIME=$(TZ=Asia/Shanghai date "+%Y-%m-%d %H:%M:%S")
 
 echo "################## A MonChkUpRmFile Script By Karry Klein ##################"
 echo "#                    MonChkUpRmFile Script Version：$ver                 #"
 echo "#           Github：https://github.com/karryklein/MonChkUpRmFile           #"
-echo "#                     监测同步时间：$CURRENT_TIME CST                #"
+echo "#                    监测同步时间：$CURRENT_TIME CST                 #"
 echo "############################################################################"
 
 CURRENT_STATE=$(mktemp)
